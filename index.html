@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>温湿度</title>
+    <!-- 引入 echarts.js -->
+    <script src="https://cdn.staticfile.org/echarts/4.3.0/echarts.min.js"> </script>
+	<style>
+		.button {
+		    background-color: #4CAF50; /* Green */
+		    border: none;
+		    color: white;
+		    padding: 15px 32px;
+		    text-align: center;
+		    text-decoration: none;
+		    display: inline-block;
+		    font-size: 16px;
+		    margin: 4px 2px;
+		    cursor: pointer;
+		    -webkit-transition-duration: 0.4s; /* Safari */
+		    transition-duration: 0.4s;
+		}
+		.button2:hover {
+		    box-shadow: 0 12px 16px 0 rgba(0,0,0,0.24),0 17px 50px 0 rgba(0,0,0,0.19);
+		}
+	</style>
+</head>
+<body onload="myfunction()">
+	<div style="text-align: center;font-size: 40px; font-weight: 600;">温湿度</div>
+    <!-- 为ECharts准备一个具备大小（宽高）的Dom -->
+    <div id="main" style="margin-left: 500px;width:400px;height: 400px;     float: left;" ></div>
+	<div id="temp" style="width: 600px;height:400px;float: left;"></div>
+	<div style="display: none;">
+		<input type="text" name="sub_imei" id="sub_imei" value="2020052341705905">
+		<input type="text" name="sub_imei_token" id="sub_imei_token" value="82e05bd4d2e2495c1701e324bdd70603">
+		<input type="text" id="sub" />
+	</div>
+	<div ><button onclick="sub_imei()"  class="button button2">点击刷新数据</button></div>
+	</body>
+    <script type="text/javascript">
+        // 基于准备好的dom，初始化echarts实例
+        var myChart = echarts.init(document.getElementById('main'));
+		var mytemp = echarts.init(document.getElementById('temp'));
+		var ws;
+		var websocket_token;
+		var target = "ws://115.28.108.146:8080";
+		
+        // 指定图表的配置项和数据
+        var option1 = {
+			tooltip: {
+				formatter: '{a} <br/>{b} : {c}%'
+			},
+			
+				series: [
+				{
+					name: '温度',
+					type: 'gauge',
+					detail: {formatter: '{value}℃'},
+					data: [{value: 0, name: '温度'}]	
+				}
+			],
+			
+		};
+		var option2 = {
+			tooltip: {
+				formatter: '{a} <br/>{b} : {c}%'
+			},
+			series: [
+				{
+					name: '湿度',
+					type: 'gauge',
+					detail: {formatter: '{value}%RH'},
+					data: [{value: 0, name: '湿度'}]	
+				}
+			],
+		};
+		function myfunction() {
+			
+			//三个判断用于获取ws通信管道（浏览器兼容）
+			if ('WebSocket' in window) {
+				ws = new WebSocket(target);
+			} else {
+				alert("WebSocket不兼容此浏览器");
+				return;
+			}
+
+			//服务器又信息返回就执行方法
+			ws.onmessage = function(event) {
+				//document.getElementById("sub").value = event.data;
+				var obj = eval('(' + event.data + ')');
+				if (obj.type == "heart") {
+					alert("数据服务器来的应答心跳" + event.data);
+				}
+
+				if (obj.type == "register") {
+					document.getElementById("return_register_imei").value = event.data;
+				}
+				if (obj.type == "delete") {
+					document.getElementById("return_delete_imei").value = event.data;
+				}
+				if (obj.type == "update") {
+					document.getElementById("return_update_imei").value = event.data;
+				}
+				if (obj.type == "address") {
+					document.getElementById("return_sub_imei").value = event.data;
+				}
+
+				if (obj.type == "content") {
+					document.getElementById("sub").value = obj.msg;
+				}
+				if (obj.type == "unsub") {
+					document.getElementById("return_unsub_imei").value = event.data;
+				}
+
+			};
+			
+			
+			
+
+		};
+
+		function send() {
+			var msg = document.getElementById("msg").value;
+			ws.send(msg);
+		};
+
+		function sub_imei() {
+			var type = "address";
+			var msg = document.getElementById("sub_imei").value;
+			var token = document.getElementById("sub_imei_token").value;
+			var msgs = '{"type":"' + type + '","msg":"' + msg + '","token":"' + token + '"} ';
+			ws.send(msgs);
+			var s = document.getElementById("sub").value;
+			var a = new Array();
+			a = s.split(" ");
+			for (var i = 0; i < a.length; i++) {
+				var m = parseInt(a[i], 10);
+			}
+			option1.series[0].data[0].value = (parseInt(a[0], 10)).toFixed(2) - 0;
+			myChart.setOption(option1, true);
+			
+			option2.series[0].data[0].value = (parseInt(a[1], 10)).toFixed(2) - 0;
+			mytemp.setOption(option2, true);
+		};
+        // 使用刚指定的配置项和数据显示图表。
+                myChart.setOption(option1);
+				mytemp.setOption(option2);
+		// setInterval(function () {
+		    
+		    
+		// },2000);
+    </script>
+
+</html>
